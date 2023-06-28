@@ -1,3 +1,6 @@
+#include <thread>
+#include <chrono>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,10 +11,9 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <stdbool.h>
-#include <iostream>
+#include <syslog.h>
 #include "PrivacyIDEA.h"
 #include "Config.h"
-#include <syslog.h>
 #include "Response.h"
 
 using namespace std;
@@ -89,11 +91,21 @@ void getConfig(int argc, const char **argv, Config &config)
         {
             config.promptText = tmp.substr(7);
         }
+        else if (tmp.rfind("pollTime=", 0) == 0)
+        {
+            config.pollTimeInSeconds = atoi(tmp.substr(9,11).c_str());
+        }
     }
 }
 
 extern "C" {
     PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv);
+
+
+    PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv)
+    {
+        return PAM_SUCCESS;
+    }
 }
 
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
@@ -108,7 +120,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 
     Config config;
     getConfig(argc, argv, config);
-    PrivacyIDEA privacyidea(pamh, config.url, !config.disableSSLVerify, config.offlineFile);
+    PrivacyIDEA privacyidea(pamh, config.url, !config.disableSSLVerify, config.offlineFile, config.debug);
 
     // Username
     int retval = PAM_SUCCESS;
@@ -144,6 +156,11 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     {
         retval = privacyidea.validateCheck(username, "", "", oldResponse);
     }
+    else
+    {
+        // If nothing is sent, set this so that the user is prompted for input
+        oldResponse.promptForOTP = true;
+    }
 
     if (retval != 0)
     {
@@ -154,8 +171,9 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     // Check if authentication has already succeeded because of passOnNoToken or passOnNoUser
-    if (oldResponse.authenticationSuccess) {
-        printf("%s", oldResponse.message.c_str());
+    if (oldResponse.authenticationSuccess)
+    {
+        printf("%s\n", oldResponse.message.c_str());
         return PAM_SUCCESS;
     }
 
@@ -172,37 +190,54 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         {
             prompt = oldResponse.message;
         }
-        string otp;
-        retval = pam_prompt(pamh, PAM_PROMPT_ECHO_OFF, prompt.c_str(), otp);
 
-        // OFFLINE check if data is present, try offline and refill if needed
-        string serialUsed;
-        retval = privacyidea.offlineCheck(username, otp, serialUsed);
-        printf("Offline retval: %d\n", retval);
-        if (retval == OFFLINE_SUCCESS)
+        // Prompt only if indicated by last response
+        string otp;
+        if (oldResponse.promptForOTP)
         {
-            success = true;
-            // it is possible that refill "fails" because the machine is offine
-            privacyidea.offlineRefill(username, otp, serialUsed);
-            break;
+            retval = pam_prompt(pamh, PAM_PROMPT_ECHO_OFF, prompt.c_str(), otp);
+            // OFFLINE check if data is present, try offline and refill if needed
+            string serialUsed;
+            retval = privacyidea.offlineCheck(username, otp, serialUsed);
+            printf("Offline retval: %d\n", retval);
+            if (retval == OFFLINE_SUCCESS)
+            {
+                success = true;
+                // it is possible that refill "fails" because the machine is offine
+                privacyidea.offlineRefill(username, otp, serialUsed);
+                break;
+            }
         }
 
         // POLL: If push was triggered before, try polling and finalizing
         bool pushFinalizing = false;
         if (oldResponse.pushTriggered)
         {
-            printf("Push triggered, polling for transaction..\n");
-            if (privacyidea.pollTransaction(oldResponse.transactionID))
+            printf("Push triggered, polling for transaction. Poll time from config: %d\n", config.pollTimeInSeconds);
+            // Poll twice per second, but only poll for the given time if no OTP is requested from the user
+            // If the user could also enter an OTP, only poll once because the execution has been blocked before by the prompt
+            int pollCount = (config.pollTimeInSeconds == 0 || oldResponse.promptForOTP) ? 0 : (config.pollTimeInSeconds * 2);
+            do
             {
-                printf("Transaction succeeded, finalizing\n");
-                // Finalize with request to /validate/check and empty pass
-                retval = privacyidea.validateCheck(username, "", oldResponse.transactionID, newResponse);
-                pushFinalizing = true;
+                printf("Polling counter: %d\n", pollCount);
+                std::chrono::milliseconds duration(500);
+                std::this_thread::sleep_for(duration);
+                if (privacyidea.pollTransaction(oldResponse.transactionID))
+                {
+                    printf("Transaction succeeded, finalizing\n");
+                    // Finalize with request to /validate/check and empty pass
+                    retval = privacyidea.validateCheck(username, "", oldResponse.transactionID, newResponse);
+                    pushFinalizing = true;
+                    break;
+                }
+                pollCount--;
+
             }
+            while (pollCount > 0);
         }
 
         // OTP: Send the input
-        if (!pushFinalizing)
+        if (!pushFinalizing && oldResponse.promptForOTP)
         {
             retval = privacyidea.validateCheck(username, otp, oldResponse.transactionID, newResponse);
         }

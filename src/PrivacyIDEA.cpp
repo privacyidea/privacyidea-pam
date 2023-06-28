@@ -17,11 +17,12 @@
 using namespace std;
 using json = nlohmann::json;
 
-PrivacyIDEA::PrivacyIDEA(pam_handle_t* pamh, std::string baseURL, bool sslVerify, std::string offlineFile)
+PrivacyIDEA::PrivacyIDEA(pam_handle_t* pamh, std::string baseURL, bool sslVerify, std::string offlineFile, bool debug)
 {
     this->pamh = pamh;
     this->baseURL = baseURL;
     this->sslVerify = sslVerify;
+    this->debug = debug;
     if (!offlineFile.empty())
     {
         this->offlineFile = offlineFile;
@@ -558,8 +559,18 @@ int PrivacyIDEA::parseResponse(const std::string &input, Response &out)
                 {
                     out.pushTriggered = true;
                 }
+                else
+                {
+                    out.promptForOTP = true;
+                }
             }
         }
+    }
+
+    // If no push token was triggered, or there simply was no challenge, set promptForOTP to true
+    if (!out.pushTriggered)
+    {
+        out.promptForOTP = true;
     }
 
     // Check if offline OTPs have been sent for the token used

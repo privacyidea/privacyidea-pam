@@ -8,8 +8,11 @@ struct Response
     // In case of a challenge, these will be set
     std::string message;
     std::string transactionID;
-    // optional
+
     bool pushTriggered = false;
+
+    // Indicate whether the user should be prompted for an input
+    bool promptForOTP = false;
 
     std::string errorMessage;
     int errorCode;

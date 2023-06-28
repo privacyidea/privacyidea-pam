@@ -13,6 +13,7 @@ struct Config
     std::string realm;
     std::string promptText;
     std::string offlineFile;
+    int pollTimeInSeconds = 0; // 0 is default and means poll once
 };
 
 #endif //PRIVACYIDEA_PAM_CONFIG_H
