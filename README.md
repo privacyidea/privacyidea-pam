@@ -1,5 +1,11 @@
 # PAM Module for Authentication with PrivacyIDEA
 
+## Features
+* OTP Token
+* Challenge-Response Token, incl. PUSH
+* Offline
+* Multi-Challenge
+
 ## Build
 This project requires the [very good JSON parser from nlohmann](https://github.com/nlohmann/json). Put the single include file `json.hpp` in `include`.
 
@@ -29,3 +35,6 @@ The following values can be appended to the pam config file line that references
 If only push and **no** OTP token were triggered, the module will poll for the configured time without prompting the user for input.
 
 If both push and OTP token were triggered, the module will prompt for the OTP and poll **once** after the user presses enter. The user can press enter with empty input to use push, just make sure the authentication was already confirmed on the smartphone.
+
+#### SSH
+Set `ChallengeResponseAuthentication yes` in `/etc/ssh/sshd_config` (or similar).
