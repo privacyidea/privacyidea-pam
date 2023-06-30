@@ -3,7 +3,7 @@
 ## Features
 * OTP Token
 * Challenge-Response Token, incl. PUSH
-* Offline
+* Offline with HOTP Token
 * Multi-Challenge
 
 ## Build
