@@ -74,11 +74,11 @@ void getConfig(int argc, const char **argv, Config &config)
         {
             config.disableSSLVerify = true;
         }
-        else if (tmp == "sendemptypass")
+        else if (tmp == "sendEmptyPass")
         {
             config.sendEmptyPass = true;
         }
-        else if (tmp == "sendunixpass")
+        else if (tmp == "sendUnixPass")
         {
             config.sendUnixPass = true;
         }

@@ -24,8 +24,8 @@ The following values can be appended to the pam config file line that references
 |url=|Required. URL of privacyIDEA.|
 |nossl|Disable SSL certificate check. DO NOT USE IN PRODUCTION!|
 |realm=|Specify the privacyIDEA realm.|
-|sendemptypass|Sends the username and an empty pass to privacyidea prior to asking for OTP. Can be used to trigger challenges.|
-|sendunixpass|Sends the username and the password to privacyidea prior to asking for OTP. Can be used to trigger challenges. Takes precedence over `sendemptypass`.|
+|sendEmptyPass|Sends the username and an empty pass to privacyidea prior to asking for OTP. Can be used to trigger challenges.|
+|sendUnixPass|Sends the username and the password to privacyidea prior to asking for OTP. Can be used to trigger challenges. Takes precedence over `sendemptypass`.|
 |offlineFile=|Set the path to the offline file. (default is /etc/privacyidea/pam.txt).|
 |pollTime=|Set the time in seconds to poll for successful push auth. Default is 0, meaning only once. Polls twice per second.|
 |debug|Enable debug logging.|
