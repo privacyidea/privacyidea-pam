@@ -6,10 +6,10 @@
 struct Config
 {
     std::string url;
-    bool disableSSLVerify;
-    bool debug;
-    bool sendEmptyPass;
-    bool sendUnixPass;
+    bool disableSSLVerify = false;
+    bool debug = false;
+    bool sendEmptyPass = false;
+    bool sendUnixPass = false;
     std::string realm;
     std::string promptText;
     std::string offlineFile;

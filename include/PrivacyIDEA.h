@@ -39,15 +39,21 @@ public:
     int offlineCheck(const std::string &user, const std::string &otp, std::string& serialUsed);
 
     int offlineRefill(const std::string& user, const std::string& lastOTP, const std::string& serial);
+
 private:
     pam_handle_t* pamh; // for syslog
+    bool debug = false;
+
     std::string baseURL;
     bool sslVerify;
+
     std::string offlineFile = "/etc/privacyidea/pam.txt";
     nlohmann::json offlineData;
-    bool debug = false;
+
     bool pbkdf2_sha512_verify(const std::string &password, std::string comparable);
+
     std::string base64Encode(const unsigned char* data, size_t length);
+
     std::vector<unsigned char> base64Decode(const std::string& encoded_string);
     // Returns the outer right value of the passlib format and cuts it off the input string including the $
     std::string getNextValue(std::string& in);

@@ -43,7 +43,11 @@ static int pam_prompt(pam_handle_t *pamh, int msg_style, const char *prompt, std
         {
             retval = PAM_CONV_ERR;
         }
-        response = string(resp->resp);
+        else
+        {
+            response = string(resp->resp);
+        }
+
         free(resp);
     }
 
@@ -57,7 +61,6 @@ void getConfig(int argc, const char **argv, Config &config)
         char *pArg;
         memcpy(&pArg, &argv[i], sizeof(pArg));
         string tmp(pArg);
-        //printf("Arugment: %s\n", tmp.c_str());
 
         if (tmp.rfind("url=", 0) == 0)
         {
@@ -98,7 +101,8 @@ void getConfig(int argc, const char **argv, Config &config)
     }
 }
 
-extern "C" {
+extern "C"
+{
     PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv);
 
 
@@ -106,7 +110,28 @@ extern "C" {
     {
         return PAM_SUCCESS;
     }
-}
+
+    int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv)
+    {
+        return PAM_SUCCESS;
+    }
+
+    int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
+    {
+        return PAM_SUCCESS;
+    }
+
+    int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
+    {
+        return PAM_SUCCESS;
+    }
+
+    int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
+    {
+        return PAM_SUCCESS;
+    }
+
+} // extern "C"
 
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
@@ -173,7 +198,6 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     // Check if authentication has already succeeded because of passOnNoToken or passOnNoUser
     if (oldResponse.authenticationSuccess)
     {
-        printf("%s\n", oldResponse.message.c_str());
         return PAM_SUCCESS;
     }
 
@@ -196,10 +220,18 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         if (oldResponse.promptForOTP)
         {
             retval = pam_prompt(pamh, PAM_PROMPT_ECHO_OFF, prompt.c_str(), otp);
+            if (retval != 0)
+            {
+                pam_syslog(pamh, LOG_ERR, "PAM conv error: %d", retval);
+            }
             // OFFLINE check if data is present, try offline and refill if needed
             string serialUsed;
             retval = privacyidea.offlineCheck(username, otp, serialUsed);
-            printf("Offline retval: %d\n", retval);
+            if (config.debug)
+            {
+                pam_syslog(pamh, LOG_DEBUG, "Offline retval: %d", retval);
+            }
+
             if (retval == OFFLINE_SUCCESS)
             {
                 success = true;
@@ -213,25 +245,21 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         bool pushFinalizing = false;
         if (oldResponse.pushTriggered)
         {
-            printf("Push triggered, polling for transaction. Poll time from config: %d\n", config.pollTimeInSeconds);
             // Poll twice per second, but only poll for the given time if no OTP is requested from the user
             // If the user could also enter an OTP, only poll once because the execution has been blocked before by the prompt
             int pollCount = (config.pollTimeInSeconds == 0 || oldResponse.promptForOTP) ? 0 : (config.pollTimeInSeconds * 2);
             do
             {
-                printf("Polling counter: %d\n", pollCount);
                 std::chrono::milliseconds duration(500);
                 std::this_thread::sleep_for(duration);
                 if (privacyidea.pollTransaction(oldResponse.transactionID))
                 {
-                    printf("Transaction succeeded, finalizing\n");
                     // Finalize with request to /validate/check and empty pass
                     retval = privacyidea.validateCheck(username, "", oldResponse.transactionID, newResponse);
                     pushFinalizing = true;
                     break;
                 }
                 pollCount--;
-
             }
             while (pollCount > 0);
         }
@@ -256,7 +284,6 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         else if (newResponse.transactionID.empty())
         {
             success = newResponse.authenticationSuccess;
-            printf("Authentication end with success=%s\n", success ? "true" : "false");
             break;
         }
 

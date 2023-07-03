@@ -37,7 +37,8 @@ PrivacyIDEA::PrivacyIDEA(pam_handle_t* pamh, std::string baseURL, bool sslVerify
         }
         catch (const json::parse_error &e)
         {
-            pam_syslog(pamh, LOG_ERR, "Unable to load offline data: %s", e.what());
+            // TODO keep this debug, because having the file is not required
+            pam_syslog(pamh, LOG_DEBUG, "Unable to load offline data: %s", e.what());
         }
     }
 }
@@ -50,7 +51,7 @@ PrivacyIDEA::~PrivacyIDEA()
     }
 }
 
-std::string UrlEncode(const std::string &input)
+std::string urlEncode(const std::string &input)
 {
     std::ostringstream escaped;
     escaped.fill('0');
@@ -75,7 +76,7 @@ std::string UrlEncode(const std::string &input)
     return escaped.str();
 }
 
-size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+size_t writeCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     ((string *) userp)->append((char *) contents, size * nmemb);
     return size * nmemb;
@@ -155,15 +156,20 @@ int PrivacyIDEA::sendRequest(const std::string &url, const std::map <std::string
         string postData;
         for (const auto &param: parameters)
         {
-            postData += param.first + "=" + UrlEncode(param.second) + "&";
+            postData += param.first + "=" + urlEncode(param.second) + "&";
         }
         postData = postData.substr(0, postData.length() - 1); // Remove the trailing '&'
-        printf("\nSending %s to %s\n", postData.c_str(), url.c_str());
+
+        if (debug)
+        {
+            pam_syslog(pamh, LOG_DEBUG, "Sending %s to %s", postData.c_str(), url.c_str());
+        }
+
+
         if (postRequest)
         {
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-            //curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(postData.c_str()));
         }
         else
         {
@@ -187,7 +193,7 @@ int PrivacyIDEA::sendRequest(const std::string &url, const std::map <std::string
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, false);
         }
 
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
         res = curl_easy_perform(curl);
@@ -210,7 +216,11 @@ int PrivacyIDEA::sendRequest(const std::string &url, const std::map <std::string
 
 int PrivacyIDEA::offlineRefill(const std::string& user, const std::string& lastOTP, const std::string& serial)
 {
-    printf("offline refill...\n");
+    if (debug)
+    {
+        pam_syslog(pamh, LOG_DEBUG, "Attempting offline refill for user %s with token %s", user.c_str(), serial.c_str());
+    }
+
     if (!offlineData.contains("offline") || !offlineData["offline"].is_array())
     {
         return OFFLINE_FILE_WRONG_FORMAT;
@@ -229,12 +239,14 @@ int PrivacyIDEA::offlineRefill(const std::string& user, const std::string& lastO
             map<string,string> headers;
             string response;
             auto retval = sendRequest(baseURL + "/validate/offlinerefill", parameters, headers, response);
-            printf("Refill response:\n%s\n", response.c_str());
 
             if (retval != 0)
             {
                 // TODO might be expected when the machine is offline, leave it at debug
-                pam_syslog(pamh, LOG_DEBUG, "Unable to refill offline values");
+                if (debug)
+                {
+                    pam_syslog(pamh, LOG_DEBUG, "%s", "Unable to refill offline values");
+                }
                 break;
             }
 
@@ -254,7 +266,11 @@ int PrivacyIDEA::offlineRefill(const std::string& user, const std::string& lastO
             {
                 item["refilltoken"] = j["auth_items"]["offline"][0]["refilltoken"];
                 item["response"].update(j["auth_items"]["offline"][0]["response"]);
-                printf("Offline refill completed. New item:%s\n", item.dump(4).c_str());
+                if (debug)
+                {
+                    pam_syslog(pamh, LOG_DEBUG, "Offline refill completed. New item:%s\n", item.dump(4).c_str());
+                }
+
             }
             else
             {
@@ -278,10 +294,14 @@ int PrivacyIDEA::offlineCheck(const std::string &user, const std::string &otp, s
 
     for (auto& item: offlineData["offline"])
     {
-        //printf("trying offline token %s. Items:\n%s\n", item["serial"].get<string>().c_str(), item.dump(4).c_str());
         if (item.contains("username") && item["username"].get<string>() == user)
         {
             userFound = true;
+            if (debug)
+            {
+                pam_syslog(pamh, LOG_DEBUG, "Offline token with serial %s found for user %s", item["serial"].get<std::string>().c_str(), user.c_str());
+            }
+
             if (item.contains("response"))
             {
                 // Order the string keys in the map by their numeric value
@@ -311,6 +331,10 @@ int PrivacyIDEA::offlineCheck(const std::string &user, const std::string &otp, s
                         matchingKey = index;
                         success = true;
                         serialUsed = item["serial"].get<std::string>();
+                        if (debug)
+                        {
+                            pam_syslog(pamh, LOG_DEBUG, "Success.");
+                        }
                         break;
                     }
                 }
@@ -517,7 +541,10 @@ void PrivacyIDEA::writeAll(std::string file, std::string content)
 
 int PrivacyIDEA::parseResponse(const std::string &input, Response &out)
 {
-    printf("%s\n\n", input.c_str());
+    if (debug)
+    {
+        pam_syslog(pamh, LOG_DEBUG, "%s", input.c_str());
+    }
     json jResponse;
     try
     {
@@ -579,7 +606,11 @@ int PrivacyIDEA::parseResponse(const std::string &input, Response &out)
         for (auto item: jResponse["auth_items"]["offline"])
         {
             offlineData["offline"].push_back(item);
-            printf("Added offline data for user %s with serial %s\n", item["username"].get<string>().c_str(), item["serial"].get<string>().c_str());
+            if (debug)
+            {
+                pam_syslog(pamh, LOG_DEBUG, "Added offline data for user %s with serial %s\n", item["username"].get<string>().c_str(), item["serial"].get<string>().c_str());
+            }
+
         }
     }
 

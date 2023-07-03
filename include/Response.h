@@ -17,7 +17,7 @@ struct Response
     std::string errorMessage;
     int errorCode;
 
-    bool authenticationSuccess;
+    bool authenticationSuccess = false;
 };
 
 #endif // RESPONSE_H
