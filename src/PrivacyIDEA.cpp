@@ -1,18 +1,18 @@
-#include "PrivacyIDEA.h"
-#include <curl/curl.h>
+#include "privacyIDEA.h"
 #include <cstring>
 #include <errno.h>
 #include <sstream>
 #include <iomanip>
-#include <syslog.h>
-#include "json.hpp"
 #include <iostream>
 #include <fstream>
+#include <syslog.h>
+#include <curl/curl.h>
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/err.h>
+#include "json.hpp"
 
 using namespace std;
 using json = nlohmann::json;
@@ -183,7 +183,7 @@ int PrivacyIDEA::sendRequest(const std::string &url, const std::map <std::string
             string headerString = header.first + ": " + header.second;
             headers_list = curl_slist_append(headers_list, headerString.c_str());
         }
-        headers_list = curl_slist_append(headers_list, ("User-Agent: " + string(HTTP_USER_AGENT)).c_str());
+        headers_list = curl_slist_append(headers_list, ("User-Agent: " + string(PAM_PRIVACYIDEA_USERAGENT)).c_str());
 
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers_list);
 

@@ -12,9 +12,9 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <syslog.h>
-#include "PrivacyIDEA.h"
-#include "Config.h"
-#include "Response.h"
+#include "privacyIDEA.h"
+#include "config.h"
+#include "response.h"
 
 using namespace std;
 
@@ -136,6 +136,7 @@ extern "C"
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
     openlog("pam_privacyidea", LOG_PID | LOG_CONS, LOG_AUTH);
+
     // Get arguments, url is required
     if (argc == 0 || argv == NULL)
     {
@@ -153,7 +154,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     retval = pam_get_user(pamh, &pUsername, "Username: ");
     if (retval != PAM_SUCCESS)
     {
-        pam_syslog(pamh, LOG_ERR, "Unable to get username! Error: %d\n", retval);
+        pam_syslog(pamh, LOG_ERR, "Unable to get username! Error: %d", retval);
         return retval;
     }
     string username(pUsername);
@@ -163,7 +164,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     retval = pam_get_authtok(pamh, PAM_AUTHTOK, &authtok, NULL);
     if (retval != PAM_SUCCESS)
     {
-        pam_syslog(pamh, LOG_ERR, "Unable to retrieve authtok with error %d\n", retval);
+        pam_syslog(pamh, LOG_ERR, "Unable to retrieve authtok with error %d", retval);
         return PAM_SERVICE_ERR;
     }
     string password(authtok);
@@ -277,7 +278,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         // Check the response for error and authentication success. If challenges were triggered, just do the next iteration of the loop
         if (!newResponse.errorMessage.empty())
         {
-            pam_syslog(pamh, LOG_ERR, "Unable to authenticate with privacyIDEA: %s (Code: %d)\n", newResponse.errorMessage.c_str(),
+            pam_syslog(pamh, LOG_ERR, "Unable to authenticate with privacyIDEA: %s (Code: %d)", newResponse.errorMessage.c_str(),
                        newResponse.errorCode);
             break;
         }

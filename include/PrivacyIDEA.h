@@ -1,7 +1,13 @@
 #ifndef PAM_PRIVACYIDEA_PRIVACYIDEA_H
 #define PAM_PRIVACYIDEA_PRIVACYIDEA_H
 
-#define HTTP_USER_AGENT                     "PAM/1.0.0"
+#include <string>
+#include <map>
+#include <security/pam_ext.h>
+#include "response.h"
+#include "json.hpp"
+
+#define PAM_PRIVACYIDEA_USERAGENT           "PAM/1.0.0"
 
 #define OFFLINE_SUCCESS                     0
 #define OFFLINE_FAIL                        1
@@ -13,16 +19,9 @@
 #define OFFLINE_NO_DATA                     10
 #define OFFLINE_NO_OTPS_LEFT                11
 
-#include <string>
-#include <map>
-#include <security/pam_ext.h>
-#include "Response.h"
-#include "json.hpp"
-
 class PrivacyIDEA
 {
 public:
-
     PrivacyIDEA(pam_handle_t* pamh, std::string baseURL, bool sslVerify, std::string offlineFile, bool debug);
 
     ~PrivacyIDEA();
