@@ -78,9 +78,9 @@ void getConfig(int argc, const char **argv, Config &config)
         {
             config.sendEmptyPass = true;
         }
-        else if (tmp == "sendUnixPass")
+        else if (tmp == "sendPassword")
         {
-            config.sendUnixPass = true;
+            config.sendPassword = true;
         }
         else if (tmp.rfind("realm=", 0) == 0)
         {
@@ -159,23 +159,21 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     }
     string username(pUsername);
 
-    // Password
-    const char *authtok = NULL; // Do not free/overwrite where this points to
-    retval = pam_get_authtok(pamh, PAM_AUTHTOK, &authtok, NULL);
-    if (retval != PAM_SUCCESS)
-    {
-        pam_syslog(pamh, LOG_ERR, "Unable to retrieve authtok with error %d", retval);
-        return PAM_SERVICE_ERR;
-    }
-    string password(authtok);
-
     // Setup some data required for requests
     retval = 0;
     Response oldResponse;
 
-    // If enabled, do either sendUnixPass or sendEmptyPass
-    if (config.sendUnixPass)
+    // If enabled, do either sendPassword or sendEmptyPass
+    if (config.sendPassword)
     {
+        const char *authtok = NULL; // Do not free/overwrite where this points to
+        retval = pam_get_authtok(pamh, PAM_AUTHTOK, &authtok, NULL);
+        if (retval != PAM_SUCCESS)
+        {
+            pam_syslog(pamh, LOG_ERR, "Unable to retrieve authtok with error %d", retval);
+            return PAM_SERVICE_ERR;
+        }
+        string password(authtok);
         retval = privacyidea.validateCheck(username, password, "", oldResponse);
     }
     else if (config.sendEmptyPass)

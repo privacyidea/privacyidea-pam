@@ -9,7 +9,7 @@ struct Config
     bool disableSSLVerify = false;
     bool debug = false;
     bool sendEmptyPass = false;
-    bool sendUnixPass = false;
+    bool sendPassword = false;
     std::string realm;
     std::string promptText;
     std::string offlineFile;
