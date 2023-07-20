@@ -165,7 +165,6 @@ int PrivacyIDEA::sendRequest(const std::string &url, const std::map <std::string
             pam_syslog(pamh, LOG_DEBUG, "Sending %s to %s", postData.c_str(), url.c_str());
         }
 
-
         if (postRequest)
         {
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());

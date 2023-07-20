@@ -111,22 +111,22 @@ extern "C"
         return PAM_SUCCESS;
     }
 
-    int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv)
+    PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv)
     {
         return PAM_SUCCESS;
     }
 
-    int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
+    PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
     {
         return PAM_SUCCESS;
     }
 
-    int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
+    PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
     {
         return PAM_SUCCESS;
     }
 
-    int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
+    PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
     {
         return PAM_SUCCESS;
     }

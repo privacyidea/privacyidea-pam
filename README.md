@@ -28,6 +28,7 @@ The following values can be appended to the pam config file line that references
 |sendPassword|Sends the username and the password that is already present in the PAM stack to privacyidea prior to asking for OTP. If no password is present, the user will be prompted to enter one. Can be used to trigger challenges. Takes precedence over `sendEmptyPass`.|
 |offlineFile=|Set the path to the offline file. (default is /etc/privacyidea/pam.txt).|
 |pollTime=|Set the time in seconds to poll for successful push auth. Default is 0, meaning only once. Polls twice per second.|
+|prompt=|Set the default prompt text for the OTP. Note: If you want to use spaces in your text, use [] like [prompt=Text with spaces].|
 |debug|Enable debug logging.|
 
 ### Notes
