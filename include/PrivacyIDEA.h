@@ -7,7 +7,7 @@
 #include "response.h"
 #include "json.hpp"
 
-#define PAM_PRIVACYIDEA_USERAGENT           "PAM/1.0.0"
+#define PAM_PRIVACYIDEA_USERAGENT           "privacyidea-pam/1.0.0"
 
 #define OFFLINE_SUCCESS                     0
 #define OFFLINE_FAIL                        1
