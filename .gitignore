@@ -1,0 +1,4 @@
+include/nlohmann
+*.o
+pam_privacyidea.so
+*.swp
