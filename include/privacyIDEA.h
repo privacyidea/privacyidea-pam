@@ -5,7 +5,7 @@
 #include <map>
 #include <security/pam_ext.h>
 #include "response.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 
 #define PAM_PRIVACYIDEA_USERAGENT           "privacyidea-pam/1.0.0"
 
