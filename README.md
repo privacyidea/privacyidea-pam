@@ -7,7 +7,7 @@
 * Multi-Challenge
 
 ## Build
-This project requires the [very good JSON parser from nlohmann](https://github.com/nlohmann/json). Put the single include file `json.hpp` in `include`.
+This project requires the [very good JSON parser from nlohmann](https://github.com/nlohmann/json). Put the `json.hpp` file from the `single_include` folder in `include`.
 
 It also requires the following libraries: `libcurl4-openssl-dev`, `libssl-dev`, `libpam0g-dev`
 
