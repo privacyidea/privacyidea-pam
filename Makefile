@@ -12,9 +12,9 @@ libdir = $(libdir.$(MACHINE))
 target = pam_privacyidea.so
 objects = src/pam_privacyidea.o src/PrivacyIDEA.o
 
-$(objects): src/%.o: src/%.cpp
-
 all: pam_privacyidea.so
+
+$(objects): src/%.o: src/%.cpp
 
 %.o:
 	$(CC) -c $(CFLAGS) $< -o $@
