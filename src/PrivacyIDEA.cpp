@@ -12,7 +12,7 @@
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/err.h>
-#include "nlohmann/json.hpp"
+#include "json.hpp"
 
 using namespace std;
 using json = nlohmann::json;
