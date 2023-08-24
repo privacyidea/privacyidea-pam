@@ -1,0 +1,4 @@
+include/json.hpp
+*.o
+pam_privacyidea.so
+*.swp
