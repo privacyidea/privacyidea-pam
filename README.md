@@ -1,5 +1,5 @@
 # PAM Module for Authentication with PrivacyIDEA
-
+## [Releases](https://github.com/privacyidea/privacyidea-pam/releases)
 ## Features
 * OTP Token
 * Challenge-Response Token, incl. PUSH
