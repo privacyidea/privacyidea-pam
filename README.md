@@ -24,7 +24,7 @@ Install and remove with:
 This will install the PAM module in `/lib/security` or `/lib64/security`
 
 ## Configuration
-The following values can be appended to the pam config file line that references this module:
+The following values (case-sensitive!) can be appended to the pam config file line that references this module:
 | Name     | Description |
 |:--------:|:----------------|
 |url=|Required. URL of privacyIDEA.|
