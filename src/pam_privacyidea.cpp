@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <syslog.h>
-#include "privacyIDEA.h"
+#include "privacyidea.h"
 #include "config.h"
 #include "response.h"
 
@@ -54,49 +54,63 @@ static int pam_prompt(pam_handle_t *pamh, int msg_style, const char *prompt, std
     return retval;
 }
 
-void getConfig(int argc, const char **argv, Config &config)
+void getConfig(pam_handle_t *pamh, int argc, const char **argv, Config &config)
 {
     for (int i = 0; i < argc; i++)
     {
         char *pArg;
         memcpy(&pArg, &argv[i], sizeof(pArg));
         string tmp(pArg);
+        //pam_syslog(pamh, LOG_DEBUG, "Argument: %s\n", tmp.c_str());
 
         if (tmp.rfind("url=", 0) == 0)
         {
             config.url = tmp.substr(4);
+            pam_syslog(pamh, LOG_DEBUG, "Setting url=%s\n", config.url.c_str());
         }
         else if (tmp == "debug")
         {
             config.debug = true;
+            pam_syslog(pamh, LOG_DEBUG, "Setting debug=true\n");
         }
         else if (tmp == "nossl")
         {
             config.disableSSLVerify = true;
+            pam_syslog(pamh, LOG_DEBUG, "Setting nossl=true\n");
         }
         else if (tmp == "sendEmptyPass")
         {
             config.sendEmptyPass = true;
+            pam_syslog(pamh, LOG_DEBUG, "Setting sendEmptyPass=true\n");
         }
         else if (tmp == "sendPassword")
         {
             config.sendPassword = true;
+            pam_syslog(pamh, LOG_DEBUG, "Setting sendPassword=true\n");
         }
         else if (tmp.rfind("realm=", 0) == 0)
         {
             config.realm = tmp.substr(6);
+            pam_syslog(pamh, LOG_DEBUG, "Setting realm=%s\n", config.realm.c_str());
         }
         else if (tmp.rfind("offlineFile=", 0) == 0)
         {
             config.offlineFile = tmp.substr(12);
+            pam_syslog(pamh, LOG_DEBUG, "Setting offlineFile=%s\n", config.offlineFile.c_str());
         }
         else if (tmp.rfind("prompt=", 0) == 0)
         {
             config.promptText = tmp.substr(7);
+            pam_syslog(pamh, LOG_DEBUG, "Setting prompt=%s\n", config.promptText.c_str());
         }
         else if (tmp.rfind("pollTime=", 0) == 0)
         {
             config.pollTimeInSeconds = atoi(tmp.substr(9,11).c_str());
+            pam_syslog(pamh, LOG_DEBUG, "Setting pollTime=%i\n", config.pollTimeInSeconds);
+        }
+        else
+        {
+            pam_syslog(pamh, LOG_DEBUG, "Unknown Argument: %s\n", tmp.c_str());
         }
     }
 }
@@ -145,8 +159,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     Config config;
-    getConfig(argc, argv, config);
-    PrivacyIDEA privacyidea(pamh, config.url, !config.disableSSLVerify, config.offlineFile, config.debug);
+    getConfig(pamh, argc, argv, config);
+    PrivacyIDEA privacyidea(pamh, config.url, config.realm, !config.disableSSLVerify, config.offlineFile, config.debug);
 
     // Username
     int retval = PAM_SUCCESS;

@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS = -g -Wall -fPIC -Iinclude
-LDFLAGS = -Wno-undef -lcurl --shared
+LDFLAGS = -Wno-undef -lcurl -lcrypto -lssl --shared
 
 # Determine which folder to use
 libdir.x86_64 = /lib64/security
@@ -10,7 +10,7 @@ MACHINE := $(shell uname -m)
 libdir = $(libdir.$(MACHINE))
 
 target = pam_privacyidea.so
-objects = src/pam_privacyidea.o src/PrivacyIDEA.o
+objects = src/pam_privacyidea.o src/privacyidea.o
 
 all: pam_privacyidea.so
 

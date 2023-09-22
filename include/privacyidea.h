@@ -7,7 +7,7 @@
 #include "response.h"
 #include "json.hpp"
 
-#define PAM_PRIVACYIDEA_USERAGENT           "privacyidea-pam/1.0.0"
+#define PAM_PRIVACYIDEA_USERAGENT           "PAM/1.0.0"
 
 #define OFFLINE_SUCCESS                     0
 #define OFFLINE_FAIL                        1
@@ -22,7 +22,7 @@
 class PrivacyIDEA
 {
 public:
-    PrivacyIDEA(pam_handle_t* pamh, std::string baseURL, bool sslVerify, std::string offlineFile, bool debug);
+    PrivacyIDEA(pam_handle_t* pamh, std::string baseURL, std::string realm, bool sslVerify, std::string offlineFile, bool debug);
 
     ~PrivacyIDEA();
 
@@ -45,6 +45,7 @@ private:
 
     std::string baseURL;
     bool sslVerify;
+    std::string realm;
 
     std::string offlineFile = "/etc/privacyidea/pam.txt";
     nlohmann::json offlineData;
@@ -54,6 +55,7 @@ private:
     std::string base64Encode(const unsigned char* data, size_t length);
 
     std::vector<unsigned char> base64Decode(const std::string& encoded_string);
+
     // Returns the outer right value of the passlib format and cuts it off the input string including the $
     std::string getNextValue(std::string& in);
 

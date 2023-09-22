@@ -1,4 +1,4 @@
-#include "privacyIDEA.h"
+#include "privacyidea.h"
 #include <cstring>
 #include <errno.h>
 #include <sstream>
@@ -17,12 +17,14 @@
 using namespace std;
 using json = nlohmann::json;
 
-PrivacyIDEA::PrivacyIDEA(pam_handle_t* pamh, std::string baseURL, bool sslVerify, std::string offlineFile, bool debug)
+PrivacyIDEA::PrivacyIDEA(pam_handle_t *pamh, std::string baseURL, std::string realm, bool sslVerify, std::string offlineFile, bool debug)
 {
     this->pamh = pamh;
     this->baseURL = baseURL;
     this->sslVerify = sslVerify;
     this->debug = debug;
+    this->realm = realm;
+
     if (!offlineFile.empty())
     {
         this->offlineFile = offlineFile;
@@ -57,7 +59,7 @@ std::string urlEncode(const std::string &input)
     escaped.fill('0');
     escaped << std::hex;
 
-    for (auto c: input)
+    for (auto c : input)
     {
         // Keep alphanumeric and other accepted characters intact
         if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
@@ -68,7 +70,7 @@ std::string urlEncode(const std::string &input)
         else
         {
             escaped << std::uppercase;
-            escaped << '%' << std::setw(2) << int((unsigned char) c);
+            escaped << '%' << std::setw(2) << int((unsigned char)c);
             escaped << std::nouppercase;
         }
     }
@@ -78,7 +80,7 @@ std::string urlEncode(const std::string &input)
 
 size_t writeCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
-    ((string *) userp)->append((char *) contents, size * nmemb);
+    ((string *)userp)->append((char *)contents, size * nmemb);
     return size * nmemb;
 }
 
@@ -86,11 +88,9 @@ bool PrivacyIDEA::pollTransaction(const string &transactionID)
 {
     int retval = 0;
     string strResponse;
-    map <string, string> param
-    {
-        make_pair("transaction_id", transactionID)
-    };
-    map <string, string> headers;
+    map<string, string> param{
+        make_pair("transaction_id", transactionID)};
+    map<string, string> headers;
 
     retval = sendRequest(baseURL + "/validate/polltransaction", param, headers, strResponse, false);
     if (retval != 0)
@@ -112,17 +112,21 @@ int PrivacyIDEA::validateCheck(const string &user, const string &pass, const str
 {
     int retval = 0;
     string strResponse;
-    map <string, string> param
-    {
+    map<string, string> param{
         make_pair("user", user),
-        make_pair("pass", pass)
-    };
+        make_pair("pass", pass)};
+
     if (!transactionID.empty())
     {
         param.emplace("transaction_id", transactionID);
     }
 
-    map <string, string> headers;
+    if (!realm.empty())
+    {
+        param.emplace("realm", realm);
+    }
+
+    map<string, string> headers;
 
     retval = sendRequest(baseURL + "/validate/check", param, headers, strResponse);
     if (retval != 0)
@@ -142,8 +146,8 @@ int PrivacyIDEA::validateCheck(const string &user, const string &pass, const str
     return retval;
 }
 
-int PrivacyIDEA::sendRequest(const std::string &url, const std::map <std::string, std::string> &parameters,
-                             const std::map <std::string, std::string> &headers,
+int PrivacyIDEA::sendRequest(const std::string &url, const std::map<std::string, std::string> &parameters,
+                             const std::map<std::string, std::string> &headers,
                              std::string &response, bool postRequest)
 {
     CURL *curl;
@@ -154,16 +158,27 @@ int PrivacyIDEA::sendRequest(const std::string &url, const std::map <std::string
     if (curl)
     {
         string postData;
-        for (const auto &param: parameters)
-        {
-            postData += param.first + "=" + urlEncode(param.second) + "&";
-        }
-        postData = postData.substr(0, postData.length() - 1); // Remove the trailing '&'
-
         if (debug)
         {
-            pam_syslog(pamh, LOG_DEBUG, "Sending %s to %s", postData.c_str(), url.c_str());
+            pam_syslog(pamh, LOG_DEBUG, "Sending request to %s with parameters:", url.c_str());
         }
+        for (const auto &param : parameters)
+        {
+            string tmp = param.first + "=" + urlEncode(param.second) + "&";
+            postData += tmp;
+            if (debug)
+            {
+                if (param.first == "pass")
+                {
+                    pam_syslog(pamh, LOG_DEBUG, "pass=%zu digits", param.second.size());
+                }
+                else
+                {
+                    pam_syslog(pamh, LOG_DEBUG, "%s", tmp.substr(0, tmp.length() - 1).c_str());
+                }
+            }
+        }
+        postData = postData.substr(0, postData.length() - 1); // Remove the trailing '&'
 
         if (postRequest)
         {
@@ -177,7 +192,7 @@ int PrivacyIDEA::sendRequest(const std::string &url, const std::map <std::string
         }
 
         struct curl_slist *headers_list = nullptr;
-        for (const auto &header: headers)
+        for (const auto &header : headers)
         {
             string headerString = header.first + ": " + header.second;
             headers_list = curl_slist_append(headers_list, headerString.c_str());
@@ -210,10 +225,10 @@ int PrivacyIDEA::sendRequest(const std::string &url, const std::map <std::string
         res = CURLE_FAILED_INIT;
     }
 
-    return (int) res;
+    return (int)res;
 }
 
-int PrivacyIDEA::offlineRefill(const std::string& user, const std::string& lastOTP, const std::string& serial)
+int PrivacyIDEA::offlineRefill(const std::string &user, const std::string &lastOTP, const std::string &serial)
 {
     if (debug)
     {
@@ -225,20 +240,22 @@ int PrivacyIDEA::offlineRefill(const std::string& user, const std::string& lastO
         return OFFLINE_FILE_WRONG_FORMAT;
     }
 
-    for (auto& item: offlineData["offline"])
+    for (auto &item : offlineData["offline"])
     {
         if (item.contains("serial") && item["serial"].get<std::string>() == serial)
         {
             map<string, string> parameters =
-            {
-                {"pass", lastOTP},
-                {"refilltoken", item["refilltoken"].get<std::string>()},
-                {"serial", serial}
-            };
-            map<string,string> headers;
+                {
+                    {"pass", lastOTP},
+                    {"refilltoken", item["refilltoken"].get<std::string>()},
+                    {"serial", serial}};
+            map<string, string> headers;
             string response;
             auto retval = sendRequest(baseURL + "/validate/offlinerefill", parameters, headers, response);
-
+            if (debug)
+            {
+                    pam_syslog(pamh, LOG_DEBUG, "%s", response.c_str());
+            }
             if (retval != 0)
             {
                 // TODO might be expected when the machine is offline, leave it at debug
@@ -260,16 +277,15 @@ int PrivacyIDEA::offlineRefill(const std::string& user, const std::string& lastO
                 return 1;
             }
 
-            if (j.contains("auth_items") && j["auth_items"].contains("offline") && j["auth_items"]["offline"].is_array() && j["auth_items"]["offline"].size() > 0
-                    && j["auth_items"]["offline"][0].contains("refilltoken") && j["auth_items"]["offline"][0].contains("response"))
+            if (j.contains("auth_items") && j["auth_items"].contains("offline") && j["auth_items"]["offline"].is_array() && j["auth_items"]["offline"].size() > 0 
+            && j["auth_items"]["offline"][0].contains("refilltoken") && j["auth_items"]["offline"][0].contains("response"))
             {
                 item["refilltoken"] = j["auth_items"]["offline"][0]["refilltoken"];
                 item["response"].update(j["auth_items"]["offline"][0]["response"]);
                 if (debug)
                 {
-                    pam_syslog(pamh, LOG_DEBUG, "Offline refill completed. New item:%s\n", item.dump(4).c_str());
+                    pam_syslog(pamh, LOG_DEBUG, "Offline refill completed, added %zu new values.\n", j["auth_items"]["offline"][0]["response"].size());
                 }
-
             }
             else
             {
@@ -280,7 +296,7 @@ int PrivacyIDEA::offlineRefill(const std::string& user, const std::string& lastO
     return 0;
 }
 
-int PrivacyIDEA::offlineCheck(const std::string &user, const std::string &otp, std::string& serialUsed)
+int PrivacyIDEA::offlineCheck(const std::string &user, const std::string &otp, std::string &serialUsed)
 {
     // Check if given user exists
     if (!offlineData.contains("offline") || !offlineData["offline"].is_array())
@@ -291,7 +307,7 @@ int PrivacyIDEA::offlineCheck(const std::string &user, const std::string &otp, s
     bool userFound = false;
     bool success = false;
 
-    for (auto& item: offlineData["offline"])
+    for (auto &item : offlineData["offline"])
     {
         if (item.contains("username") && item["username"].get<string>() == user)
         {
@@ -304,12 +320,12 @@ int PrivacyIDEA::offlineCheck(const std::string &user, const std::string &otp, s
             if (item.contains("response"))
             {
                 // Order the string keys in the map by their numeric value
-                auto comp = [](const string& a, const string& b)
+                auto comp = [](const string &a, const string &b)
                 {
                     return stoi(a) < stoi(b);
                 };
-                map <string, string, decltype(comp)> offlineMap(comp);
-                for (auto& offlineEntries: item["response"].items())
+                map<string, string, decltype(comp)> offlineMap(comp);
+                for (auto &offlineEntries : item["response"].items())
                 {
                     offlineMap.emplace(offlineEntries.key(), offlineEntries.value());
                 }
@@ -317,7 +333,7 @@ int PrivacyIDEA::offlineCheck(const std::string &user, const std::string &otp, s
                 int lowestKey = stoi(offlineMap.begin()->first);
                 int matchingKey = 0;
                 int window = 10; // TODO make this configurable?
-                for (auto& offlineEntries: offlineMap)
+                for (auto &offlineEntries : offlineMap)
                 {
                     int index = stoi(offlineEntries.first);
                     if (index >= (lowestKey + window))
@@ -325,7 +341,7 @@ int PrivacyIDEA::offlineCheck(const std::string &user, const std::string &otp, s
                         break;
                     }
 
-                    if(pbkdf2_sha512_verify(otp, offlineEntries.second))
+                    if (pbkdf2_sha512_verify(otp, offlineEntries.second))
                     {
                         matchingKey = index;
                         success = true;
@@ -355,14 +371,14 @@ int PrivacyIDEA::offlineCheck(const std::string &user, const std::string &otp, s
 }
 
 // Returns the outer right value of the passlib format and cuts it off the input string including the $
-std::string PrivacyIDEA::getNextValue(std::string& in)
+std::string PrivacyIDEA::getNextValue(std::string &in)
 {
     string tmp = in.substr(in.find_last_of('$') + 1);
     in = in.substr(0, in.find_last_of('$'));
     return tmp;
 }
 
-std::string PrivacyIDEA::base64Encode(const unsigned char* data, size_t length)
+std::string PrivacyIDEA::base64Encode(const unsigned char *data, size_t length)
 {
     static const std::string base64_chars =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -404,14 +420,14 @@ std::string PrivacyIDEA::base64Encode(const unsigned char* data, size_t length)
         for (j = 0; j < i + 1; j++)
             encoded_string += base64_chars[char_array_4[j]];
 
-        //while (i++ < 3)
-        //  encoded_string += '=';
+        // while (i++ < 3)
+        //   encoded_string += '=';
     }
 
     return encoded_string;
 }
 
-std::vector<unsigned char> PrivacyIDEA::base64Decode(const std::string& encoded_string)
+std::vector<unsigned char> PrivacyIDEA::base64Decode(const std::string &encoded_string)
 {
     static const std::string base64_chars =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -477,9 +493,8 @@ bool PrivacyIDEA::pbkdf2_sha512_verify(const std::string &password, std::string 
     {
         iterations = stoi(getNextValue(comparable));
     }
-    catch (const invalid_argument& e)
+    catch (const invalid_argument &e)
     {
-
     }
     // $algorithm
     string algorithm = getNextValue(comparable);
@@ -492,15 +507,14 @@ bool PrivacyIDEA::pbkdf2_sha512_verify(const std::string &password, std::string 
     const int derivedKeyLength = 64; // SHA-512 produces 64-byte hash
     unsigned char derivedKey[derivedKeyLength];
     int result = PKCS5_PBKDF2_HMAC(
-                     password.c_str(),
-                     password.length(),
-                     salt.data(),
-                     salt.size(),
-                     iterations,
-                     EVP_sha512(),
-                     derivedKeyLength,
-                     derivedKey
-                 );
+        password.c_str(),
+        password.length(),
+        salt.data(),
+        salt.size(),
+        iterations,
+        EVP_sha512(),
+        derivedKeyLength,
+        derivedKey);
 
     if (result != 1)
     {
@@ -530,7 +544,7 @@ void PrivacyIDEA::writeAll(std::string file, std::string content)
     std::ofstream outFile(file, std::ios::trunc);
     if (!outFile)
     {
-        pam_syslog(pamh, LOG_ERR, "Unable to open offline file. Error: %d %s", errno, strerror(errno));
+        pam_syslog(pamh, LOG_DEBUG, "Unable to open offline file. Error: %d %s", errno, strerror(errno));
         // TODO do not return error here?
     }
 
@@ -544,6 +558,7 @@ int PrivacyIDEA::parseResponse(const std::string &input, Response &out)
     {
         pam_syslog(pamh, LOG_DEBUG, "%s", input.c_str());
     }
+
     json jResponse;
     try
     {
@@ -579,7 +594,7 @@ int PrivacyIDEA::parseResponse(const std::string &input, Response &out)
 
         if (jResponse["detail"].contains("multi_challenge") && jResponse["detail"]["multi_challenge"].is_array() && jResponse["detail"]["multi_challenge"].size() > 0)
         {
-            for (auto &item: jResponse["detail"]["multi_challenge"].items())
+            for (auto &item : jResponse["detail"]["multi_challenge"].items())
             {
                 if (item.value()["type"] == "push")
                 {
@@ -602,14 +617,13 @@ int PrivacyIDEA::parseResponse(const std::string &input, Response &out)
     // Check if offline OTPs have been sent for the token used
     if (jResponse.contains("auth_items"))
     {
-        for (auto item: jResponse["auth_items"]["offline"])
+        for (auto item : jResponse["auth_items"]["offline"])
         {
             offlineData["offline"].push_back(item);
             if (debug)
             {
                 pam_syslog(pamh, LOG_DEBUG, "Added offline data for user %s with serial %s\n", item["username"].get<string>().c_str(), item["serial"].get<string>().c_str());
             }
-
         }
     }
 
