@@ -37,6 +37,15 @@ The following values (case-sensitive!) can be appended to the pam config file li
 |prompt=|Set the default prompt text for the OTP. Note: If you want to use spaces in your text, use [] like [prompt=Text with spaces].|
 |debug|Enable debug logging.|
 
+### Example
+
+It is a good idea to use the include mechanisms of the PAM stack. This way you can
+define a file `/etc/pam.d/privacyidea-auth` and replace the `@include common-auth`
+in all PAM service configurations you wish to.
+
+A sample is located in the sample folder. You may need to adapt the sample
+according to the configuration design of your Linux distribution.
+
 ### Notes
 #### Push behavior
 If only push and **no** OTP token were triggered, the module will poll for the configured time without prompting the user for input.
