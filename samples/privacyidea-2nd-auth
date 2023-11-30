@@ -1,0 +1,15 @@
+#
+# /etc/pam.d/privacyidea-auth - authentication settings for services that should use 2FA with privacyIDEA
+#
+# This config can be used to authenticate against privacyIDEA after authenticating against pam_unix
+#
+# It comes with no warranty.
+#
+auth   required			    pam_unix.so nullok_secure
+# After authenticating against PAM unix, the password is sent to privacyIDEA,
+# potential challenges are triggered and the user has to authenticate against privacyIDEA
+auth   [success=1 default=ignore]   pam_privacyidea.so url=https://your.server.here sendPassword
+# fallback if privacyidea fails
+auth	requisite			pam_deny.so
+auth	required			pam_permit.so
+auth	optional			pam_cap.so 
