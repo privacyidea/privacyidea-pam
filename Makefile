@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS = -g -Wall -fPIC -Iinclude
-LDFLAGS = -Wno-undef -lcurl -lcrypto -lssl --shared
+LDFLAGS = -Wno-undef -lcurl -lcrypto -lssl -lpam --shared
 
 # Determine which folder to use
 libdir.x86_64 = /lib64/security
