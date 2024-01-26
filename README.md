@@ -54,3 +54,6 @@ If both push and OTP token were triggered, the module will prompt for the OTP an
 
 #### SSH
 Set `ChallengeResponseAuthentication yes` in `/etc/ssh/sshd_config` (or similar).
+
+#### Centos 9
+Centos 9 contains an additional config file for ssh at `/etc/ssh/sshd_config.d/50-redhat.conf` which explicitly sets `ChallengeResponseAuthentication no`, so you might want to check that to change it.
