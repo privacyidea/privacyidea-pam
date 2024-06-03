@@ -20,7 +20,7 @@ $(objects): src/%.o: src/%.cpp
 	$(CC) -c $(CFLAGS) $< -o $@
 
 $(target): $(objects)
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -f src/*.o $(target)
