@@ -57,3 +57,34 @@ Set `ChallengeResponseAuthentication yes` in `/etc/ssh/sshd_config` (or similar)
 
 #### Centos 9
 Centos 9 contains an additional config file for ssh at `/etc/ssh/sshd_config.d/50-redhat.conf` which explicitly sets `ChallengeResponseAuthentication no`, so you might want to check that to change it.
+
+### Verify SSL connection
+ Guide: Verify SSL Connection (Add Custom CA Certificate)
+#### Step 1: Create a custom folder for additional certificates
+```
+sudo mkdir -p /usr/share/ca-certificates/custom/
+```
+---
+#### Step 2: Copy the CA issuer certificate into the custom folder
+```
+sudo cp your-ca-issuer.crt /usr/share/ca-certificates/custom/
+```
+> Replace `your-ca-issuer.crt` with the actual path to your certificate.
+---
+#### Step 3: Register the certificate with the system
+Option 1 (interactive):
+```
+sudo dpkg-reconfigure ca-certificates
+```
+Option 2 (automatic):
+```
+echo "custom/your-ca-issuer.crt" | sudo tee -a /etc/ca-certificates.conf
+sudo update-ca-certificates
+```
+---
+####  Quick & Dirty (not recommended)
+Append the certificate directly to the trusted certificate bundle:
+```
+sudo cat your-ca-issuer.crt | sudo tee -a /etc/ssl/certs/ca-certificates.crt
+```
+>  This is not update-safe and should only be used for temporary or testing purposes.
