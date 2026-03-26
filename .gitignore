@@ -2,3 +2,10 @@ include/json.hpp
 *.o
 pam_privacyidea.so
 *.swp
+
+# CMake
+build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
