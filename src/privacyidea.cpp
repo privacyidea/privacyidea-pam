@@ -598,7 +598,15 @@ int PrivacyIDEA::parseResponse(const std::string &input, Response &out)
             {
                 if (item.value()["type"] == "push")
                 {
-                    out.pushTriggered = true;
+                    std::string clientMode = item.value().value("client_mode", "poll");
+                    if (clientMode == "interactive")
+                    {
+                        out.promptForOTP = true;
+                    }
+                    else
+                    {
+                        out.pushTriggered = true;
+                    }
                 }
                 else
                 {
